@@ -227,7 +227,7 @@ void UART3_RX_Callback(char ch)
 void GSM_Recv_Parser(void)
 {
     char str[13]={0};
-    char str1[13]={0};
+   __VOLATILE char str1[13]={0};
     int i=0;
     int j=0;
     int res=0;
