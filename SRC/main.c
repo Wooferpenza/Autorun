@@ -6,6 +6,7 @@
 #include "count.h"
 #include "gsm.h"
 #include "string_.h"
+char strrr[]="123";
 UART_Settings UART0;
 UART_Settings UART_GPS;
 UART_Settings UART_GSM;
@@ -177,7 +178,7 @@ void main (void)
    // SetTask(Blink);
   //  SetTask(Pulse);
    // GPS_PWR=ON;
-    SetTimerTask(GSM_Start,1000);
+   // SetTimerTask(GSM_Start,1000);
 
 
    // while (1)
@@ -192,7 +193,9 @@ void UART0_RX_Callback(char ch)
 
     if (ch==13)
     {
-        SetTimerTask(Uart0_TX,100);
+        //SetTimerTask(Uart0_TX,100);
+
+        UART_Send_String(&UART0,strrr);
 
     }
 }
@@ -227,7 +230,7 @@ void UART3_RX_Callback(char ch)
 void GSM_Recv_Parser(void)
 {
     char str[13]={0};
-   __VOLATILE char str1[13]={0};
+    char str1[13]={0};
     int i=0;
     int j=0;
     int res=0;
