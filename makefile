@@ -1,61 +1,81 @@
-ifeq ($(OS),WIN32)
-SHELL := cmd.exe
-endif
-
 # Пути
-#-------------------------------------------------------------------------------
 TARGET	= Autorun
-SOURCEDIRS	= ./SRC
-INCLUDELIB += C:/Softune/lib/907/include/sample/MB90340
-INCLUDE += ./INC 
-SOURCES+= $(wildcard $(SOURCEDIRS)/*.c)
-SOURCESASM= $(wildcard $(SOURCEDIRS)/*.asm)
+
+INCLUDELIB = C:/Softune/lib/907/include/sample/MB90340
+INCLUDELIB += -I C:/Softune/lib/907/include
+INCLUDE = INC
+SOURCEDIRS = SRC
+ 
 LINCS=IO_DEF/io_def.rel
 
 ifeq ($(MODE),DEBUG)
-OUTPUTDIR	= Debug/ABS
-OBJDIR = Debug/OBJ
-LSTDIR = Debug/LST
+OUTPUTROOT = DEBUG
 else
-OUTPUTDIR	= Release/ABS
-OBJDIR = Release/OBJ
-LSTDIR = Release/LST
+OUTPUTROOT = RELEASE
 endif
 
-# Инструменты
+OUTPUTDIR = $(OUTPUTROOT)/ABS
+OBJDIR = $(OUTPUTROOT)/OBJ
+LSTDIR = $(OUTPUTROOT)/LST
 #-------------------------------------------------------------------------------
+
+# Инструменты
 ifeq ($(OS),WIN32)
-AS = C:\Softune\BIN\fasm907s.exe
-CC = C:\Softune\BIN\fcc907s.exe
-LD = C:\Softune\BIN\flnk907s.exe
-CV = C:\Softune\BIN\f2ms.exe
+AS = C:/Softune/BIN/fasm907s.exe
+CC = C:/Softune/BIN/fcc907s.exe
+LD = C:/Softune/BIN/flnk907s.exe
+CV = C:/Softune/BIN/f2ms.exe
 else
 AS = wine ~/.wine/drive_C/Softune/BIN/fasm907s.exe
 CC = wine ~/.wine/drive_C/Softune/BIN/fcc907s.exe
 LD = wine ~/.wine/drive_C/Softune/BIN/flnk907s.exe
 CV = wine ~/.wine/drive_C/Softune/BIN/f2ms.exe
 endif
-RM = -rm
+RM = rm -rf
 
-# Флаги
-#--------------------------------------------------------------------------------
+.PHONY: directories
+all: $(OUTPUTDIR)/$(TARGET).mhx
+directories: $(OUTPUTDIR) $(OBJDIR) $(LSTDIR)
+$(OUTPUTDIR): $(OUTPUTROOT)
+	mkdir $(OUTPUTDIR)
+$(OBJDIR): $(OUTPUTROOT)
+	mkdir $(OBJDIR)
+$(LSTDIR): $(OUTPUTROOT)
+	mkdir $(LSTDIR)
+
+$(OUTPUTROOT):
+	mkdir $(OUTPUTROOT)
+
+#Список исхоных файлов
+SOURCES+= $(wildcard $(SOURCEDIRS)/*.c)
+SOURCESASM= $(wildcard $(SOURCEDIRS)/*.asm)
+#-------------------------------------------------------------------------------
+
+#Флаги компилятора--------------------------------------------------------------
+CFLAGS =-cpu MB90F345C -model SMALL\
+-I $(INCLUDELIB) -I $(INCLUDE)\
+-B -cwno -cmsg -w 5 -K VOLATILE -Xdof
 ifeq ($(MODE),DEBUG)
-CFLAGS=-g\
--O 0
+CFLAGS += -g -O 0
 else 
-CFLAGS+=-O 1
+CFLAGS += -O 1
 endif
+#-------------------------------------------------------------------------------
 
-CFLAGS+=-w 5\
--I $(INCLUDELIB)\
--I $(INCLUDE)\
--model SMALL\
--B\
--c\
--cwno\
--cpu MB90F345C\
--cmsg
+# Компиляция--------------------------------------------------------------------
+ifeq ($(MODE),DEBUG)
+$(OBJDIR)/%.obj: $(SOURCEDIRS)/%.c directories
+	@echo compilation $<
+	@$(CC) $(CFLAGS)  -o "$@" "$<" -INF STACK="$(@:.obj=.stk)"
+#-o "$@"	
+else
+$(OBJDIR)/%.obj: $(SOURCEDIRS)/%.c directories
+	@echo compilation $<
+	@$(CC) $(CFLAGS) -o "$@" "$<"
+endif
+#-------------------------------------------------------------------------------
 
+#Флаги ассемблера---------------------------------------------------------------
 ifeq ($(MODE),DEBUG)
 AFLAGS=-g
 endif
@@ -71,80 +91,69 @@ AFLAGS+=-w 2\
 -cwno\
 -cpu MB90F345C\
 -cmsg
-#-pl 60\
-#-pw 100\
+#-------------------------------------------------------------------------------
 
-ifeq ($(MODE),DEBUG)
-LDFLAGS=-xlf $(LSTDIR)/$(TARGET).mpx\
--slf $(LSTDIR)/$(TARGET).mps\
--mlf $(LSTDIR)/$(TARGET).mpm
-LDFLAGS+=-m $(LSTDIR)/$(TARGET).mp1
-else
-LDFLAGS+=-m $(LSTDIR)/$(TARGET).mp1
-endif
+#-------------------------------------------------------------------------------
+$(OBJDIR)/%.obj: $(SOURCEDIRS)/%.asm directories
+	@echo compilation $<
+	@$(AS) $(AFLAGS) -Xdof -o "$@"  "$<"
+#-------------------------------------------------------------------------------
 
-LDFLAGS+=-g
-LDFLAGS+=-AL 2\
+# Список объектных файлов-------------------------------------------------------
+OBJS =  $(addprefix $(OBJDIR)/,$(notdir $(SOURCES:.c=.obj)))
+OBJS += $(addprefix $(OBJDIR)/,$(notdir $(SOURCESASM:.asm=.obj)))
+#-------------------------------------------------------------------------------
+
+#Флаги линковки-----------------------------------------------------------------
+LDFLAGS = -cpu MB90F345C\
 -ra _INRAM01=0x000100/0x0050FF\
 -ro _INROM01=0xF80000/0xFFFFFF\
 -check_rora\
 -check_locate\
+-l C:/Softune/lib/907/lib904s\
+-a\
 -rg 0\
 -mmi\
 -alin $(LSTDIR)\
 -alout $(LSTDIR)\
--pl 60\
--pw 132\
 -Xals\
 -Xalr\
 -na\
 -nd\
--L C:/Softune/lib/907\
 -w 2\
 -cwno\
--a\
--cpu MB90F345C\
--cmsg
-
-# Список файлов к удалению командой "make clean"
-#-------------------------------------------------------------------------------
-TOREMOVE += $(OUTPUTDIR)/*.abs
-TOREMOVE += $(OUTPUTDIR)/*.mhx
-TOREMOVE += $(OBJDIR)/*.obj
-TOREMOVE += $(OBJDIR)/*.stk
-TOREMOVE += $(LSTDIR)/*.*
-
-# Список объектных файлов
-#-------------------------------------------------------------------------------
-OBJS =  $(addprefix $(OBJDIR)/,$(notdir $(SOURCES:.c=.obj)))
-OBJS += $(addprefix $(OBJDIR)/,$(notdir $(SOURCESASM:.asm=.obj)))
-
-all: $(OUTPUTDIR)/$(TARGET).abs
-
-# Компиляция
-#------------------------------------------------------------------------------- 
+-cmsg\
+-AL 2\
+-Xdof
 ifeq ($(MODE),DEBUG)
-$(OBJDIR)/%.obj: $(SOURCEDIRS)/%.c 
-	@echo compilation $<
-	@$(CC) $(CFLAGS) -Xdof -o "$@" "$<" -INF STACK="$(@:.obj=.stk)"
+LDFLAGS+=-xlf $(LSTDIR)/$(TARGET).mpx\
+-slf $(LSTDIR)/$(TARGET).mps\
+-mlf $(LSTDIR)/$(TARGET).mpm
+LDFLAGS+=-m $(LSTDIR)/$(TARGET).mp1
+LDFLAGS+=-g
 else
-$(OBJDIR)/%.obj: $(SOURCEDIRS)/%.c 
-	@echo compilation $<
-	@$(CC) $(CFLAGS) -Xdof -o "$@" "$<"
+LDFLAGS+=-Xm
 endif
+#-------------------------------------------------------------------------------
 
-$(OBJDIR)/%.obj: $(SOURCEDIRS)/%.asm
-	@echo compilation $<
-	@$(AS) $(AFLAGS) -Xdof -o "$@"  "$<"
-
-# Линковка
-#------------------------------------------------------------------------------- 
+# Линковка----------------------------------------------------------------------
 $(OUTPUTDIR)/$(TARGET).abs: $(OBJS)
 	@echo Linc
-	@$(LD) $(LDFLAGS) -o $(OUTPUTDIR)/$(TARGET).abs $(OBJS) $(LINCS) -Xdof
-	@$(CV)	-cwno -o $(OUTPUTDIR)/$(TARGET).mhx $(OUTPUTDIR)/$(TARGET).abs
-	
-# Очистка
-#-------------------------------------------------------------------------------
+	@$(LD) $(LDFLAGS) -o $(OUTPUTDIR)/$(TARGET).abs $(OBJS) $(LINCS) 
+#--------------------------------------------------------------------------------
+
+# Список файлов к удалению командой "make clean"--------------------------------
+TOREMOVE = $(OUTPUTDIR)/*.abs
+TOREMOVE += $(OUTPUTDIR)/*.mhx
+TOREMOVE += $(OBJDIR)/*.obj
+TOREMOVE += $(OBJDIR)/*.*
+TOREMOVE += $(LSTDIR)/*.*
+#-------------------------------------------------------------------------------	
+
+#конвертирование----------------------------------------------------------------
+$(OUTPUTDIR)/$(TARGET).mhx: $(OUTPUTDIR)/$(TARGET).abs
+	@echo covertion
+	@$(CV)	-cwno -cmsg -o $(OUTPUTDIR)/$(TARGET).mhx $(OUTPUTDIR)/$(TARGET).abs
+# Очистка-----------------------------------------------------------------------
 clean:
-	@$(RM) -f $(TOREMOVE)  	
+	@$(RM)  $(TOREMOVE)  	

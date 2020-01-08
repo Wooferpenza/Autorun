@@ -1,10 +1,8 @@
 INC/count.h
 INC/gsm.h
 INC/interrupt_vector.h
-INC/string_.h
 SRC/count.c
 SRC/gsm.c
-SRC/string_.c
 SRC/uart.c
 INC/EERTOS.h
 INC/EERTOSHAL.h

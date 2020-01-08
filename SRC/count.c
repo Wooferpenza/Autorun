@@ -17,7 +17,7 @@ u16 Count_Read(void)
     IO_ICS23.bit.ICE2=0;
     if (Curr_Count>Prev_Count)
     {
-       // value=187500UL/(Curr_Count-Prev_Count);
+        value=187500UL/(Curr_Count-Prev_Count);
     }
     else
     {
@@ -27,7 +27,7 @@ u16 Count_Read(void)
         }
         else
         {
-       //     value=187500UL/(65535U+Curr_Count-Prev_Count);
+           value=187500UL/(65535U+Curr_Count-Prev_Count);
         }
     }
 IO_ICS23.bit.ICE2=1;

@@ -1,12 +1,12 @@
-#include "interrupt_vector.h"
+﻿#include "interrupt_vector.h"
 #include "EERTOS.h"
 #include "uart.h"
 #include "command.h"
 #include "ADC.h"
 #include "count.h"
 #include "gsm.h"
-#include "string_.h"
-char strrr[]="123";
+#include "string.h"
+
 UART_Settings UART0;
 UART_Settings UART_GPS;
 UART_Settings UART_GSM;
@@ -28,11 +28,6 @@ void GSM_TX1 (void)
 {
     char ch=0;
     int i=0;
-    for (i=0;i<40;i++)
-    {
-        GSM_Recv[i]=0;
-    }
-    i=0;
     while(UART_Recv(&UART_GSM,&ch))
     {
         GSM_Recv[i]=ch;
@@ -190,12 +185,12 @@ void main (void)
 
 void UART0_RX_Callback(char ch)
 {
-
+    //char  strrr[]="123";
     if (ch==13)
     {
         //SetTimerTask(Uart0_TX,100);
 
-        UART_Send_String(&UART0,strrr);
+     //   UART_Send_String(&UART0,strrr);
 
     }
 }
